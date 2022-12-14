@@ -15,16 +15,21 @@ async fn spawn_app() -> TestApp {
         .expect("Failed to bind random port.");
     // extract the port number from the TCP socket server
     let port = listener.local_addr().unwrap().port();
-
+    // generate the address for the application to run on
     let address = format!("http://127.0.0.1:{}", port);
+    // get configuration from a configuration file
     let mut configuration = get_configuration().expect("Failed to read configuration");
+    // randomize the database name so it will be different for each test run,
+    // otherwise the insert operation won't succeed after the first test run,
+    // due to the "UNIQUE" keyword in our database.
     configuration.database.database_name = Uuid::new_v4().to_string();
+    // establish connection to our database
     let connection_pool = configure_database(&configuration.database).await;
 
-    // get a server handler from the library
+    // get a server handler
     let server = zero2prod::startup::run(listener, connection_pool.clone())
         .expect("Failed to bind address.");
-    // spawn the server
+    // spawn the server asynchronously
     let _ = tokio::spawn(server);
     TestApp {
         address,
@@ -33,17 +38,20 @@ async fn spawn_app() -> TestApp {
 }
 
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
+    // connect to our database without a specific db name
     let mut connection = PgConnection::connect(&config.connection_string_without_db())
         .await
         .expect("Failed to connect to Postgres");
+    // create a database using randomized database name
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
         .await
         .expect("Failed to create database.");
-
+    // connect to the database we just created
     let connection_pool = PgPool::connect(&config.connection_string())
         .await
         .expect("Failed to connect to Postgres.");
+    // perform database migrations
     sqlx::migrate!("./migrations")
         .run(&connection_pool)
         .await
@@ -54,12 +62,11 @@ pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
 
 #[tokio::test]
 async fn health_check_works() {
-    // spawn a server thread for testing,
-    // returns a string represents the address the spawned server is running on
+    // spawn a server for testing
     let mut test_app = spawn_app().await;
-
+    // initialize a mock client
     let client = reqwest::Client::new();
-    // query a server address and get the reponse body
+    // query a server address using GET method and get the reponse body
     let response = client
         .get(&format!("{}/health_check", &test_app.address))
         .send()
@@ -86,7 +93,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
         .expect("Failed to execute request.");
 
     assert_eq!(200, response.status().as_u16());
-
+    // Query our database for value stored
     let saved = sqlx::query!("SELECT email, name FROM subscriptions")    
         .fetch_one(&test_app.db_pool)
         .await
@@ -100,6 +107,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 async fn subscribe_returns_a_400_when_data_is_missing() {
     let test_app = spawn_app().await;
     let client = reqwest::Client::new();
+    // paremetrised testing
     let test_cases = vec![
         ("name=le%20guin", "missing the email"),
         ("email=ursula_le_guin%40gmail.com", "missing the name"),
@@ -115,6 +123,9 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
             .await
             .expect("Failed to execute request.");
 
+        // since we are using parametrised testing,
+        // we must provide a detailed description about any failures,
+        // otherwise we won't be able to know which test case specifically causes the failure.
         assert_eq!(
             400,
             response.status().as_u16(),

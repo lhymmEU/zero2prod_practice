@@ -13,6 +13,13 @@ pub fn run(
     listener: TcpListener,
     db_pool: PgPool
 ) -> Result<Server, std::io::Error> {
+    // wrap the db connection with actix_web's data extractor.
+    // the reason is:
+    // actix web will spawn an App on each cpu core,
+    // and we'd like to share the db connection among these instances,
+    // using the data extractor provided by actix_web,
+    // we can share the connection with Arc pointer ability,
+    // so the concurrent access to the data can be secured.
     let db_pool = web::Data::new(db_pool);
     // this outer block handles the transport layer logic
     let server = HttpServer::new(move || {
