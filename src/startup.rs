@@ -1,5 +1,6 @@
 use actix_web::{web, App, HttpServer};
 use actix_web::dev::Server;
+use actix_web::middleware::Logger;
 use std::net::TcpListener;
 use crate::routes::{ health_check, subscribe };
 use sqlx::PgPool;
@@ -25,6 +26,7 @@ pub fn run(
     let server = HttpServer::new(move || {
         // this app block handles the application layer logic
         App::new()
+            .wrap(Logger::default())
             .route("/health_check", web::get().to(health_check))
             .route("/subscriptions", web::post().to(subscribe))
             .app_data(db_pool.clone())
