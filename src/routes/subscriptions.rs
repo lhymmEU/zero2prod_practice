@@ -37,6 +37,9 @@ pub async fn subscribe(
     }
 }
 
+// this procedure macro will capture the
+// execution context of the following function then
+// attach them to structured logging provided by the tracing crate
 #[tracing::instrument(
     name = "Saving new subscriber details in the database",
     skip(form, pool)

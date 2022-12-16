@@ -7,6 +7,8 @@ use secrecy::ExposeSecret;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    // get a tracing subscriber for telemetry data,
+    // all sub-routines' default subscriber will be this one if no specific function-level subscriber is provided
     let subscriber = get_subscriber("zero2prod".into(), "info".into(), std::io::stdout);
     init_subscriber(subscriber);
     // read configuration from a yaml config file
@@ -18,6 +20,8 @@ async fn main() -> std::io::Result<()> {
     // wait for a current connection to close,
     // thus enables concurrent access through multiple connections to a database.
     // (sqlx cannot perform concurrent access over one single connection)
+    //
+    // the connection string is protected using Secret<String>, need to be exposed before further use
     let connection_pool = PgPool::connect(&configuration.database.connection_string().expose_secret())
         .await
         .expect("Failed to connect to Postgres.");

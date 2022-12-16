@@ -6,9 +6,16 @@ use zero2prod::telemetry::{get_subscriber, init_subscriber};
 use once_cell::sync::Lazy;
 use secrecy::ExposeSecret;
 
+// we need this because the lazy execution will
+// only execute the wrapped code once so
+// we'll only initialize the subscriber once for one testing run
 static TRACING: Lazy<()> = Lazy::new(|| {
     let default_filter_level = "info".to_string();
     let subscriber_name = "test".to_string();
+    // the return type depends on the 3rd (sink) variable
+    // since we have two different types of sinks
+    // we can't use a general var as an input
+    // otherwise the return type cannot be decided by the compiler
     if std::env::var("TEST_LOG").is_ok() {
         let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::stdout);
         init_subscriber(subscriber);

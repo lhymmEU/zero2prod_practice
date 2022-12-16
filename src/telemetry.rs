@@ -5,6 +5,10 @@ use tracing_log::LogTracer;
 use tracing::Subscriber;
 use tracing_subscriber::fmt::MakeWriter;
 
+// to fully understand the logic of this file
+// needs further investigation of the tracing crate,
+// will add detailed comments after that.
+
 pub fn get_subscriber<Sink> (
     name: String,
     env_filter: String,

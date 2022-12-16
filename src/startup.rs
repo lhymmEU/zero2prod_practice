@@ -26,6 +26,9 @@ pub fn run(
     let server = HttpServer::new(move || {
         // this app block handles the application layer logic
         App::new()
+            // TracingLogger is a replacement for actix_web's native logger,
+            // it provides an easy way to parse actix_web's loggings and
+            // integrate them with tracing spans
             .wrap(TracingLogger::default())
             .route("/health_check", web::get().to(health_check))
             .route("/subscriptions", web::post().to(subscribe))
