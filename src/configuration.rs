@@ -33,10 +33,16 @@ impl DatabaseSettings {
 
 // get a settings struct populated using config files
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
-    // initialize configuration
-    let mut settings = config::Config::default();
-    // read in the values within the config file
-    settings.merge(config::File::with_name("configuration"))?;
-    // deserialize value into Settings struct
-    settings.try_into()
+    let builder = config::Config::builder()
+        .set_default("default", "1")?
+        .add_source(config::File::new("configuration", config::FileFormat::Yaml))
+        .set_override("override", "1")?;
+    match builder.build() {
+        Ok(config) => {
+            config.try_deserialize()
+        },
+        Err(e) => {
+            Err(e)
+        }
+    }
 }
