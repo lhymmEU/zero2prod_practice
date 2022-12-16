@@ -1,9 +1,9 @@
 use actix_web::{web, App, HttpServer};
 use actix_web::dev::Server;
-use actix_web::middleware::Logger;
 use std::net::TcpListener;
 use crate::routes::{ health_check, subscribe };
 use sqlx::PgPool;
+use tracing_actix_web::TracingLogger;
 
 // start the server and return a Tokio server handler,
 // the reason to use listener as an input is,
@@ -26,7 +26,7 @@ pub fn run(
     let server = HttpServer::new(move || {
         // this app block handles the application layer logic
         App::new()
-            .wrap(Logger::default())
+            .wrap(TracingLogger::default())
             .route("/health_check", web::get().to(health_check))
             .route("/subscriptions", web::post().to(subscribe))
             .app_data(db_pool.clone())
