@@ -1,7 +1,7 @@
 use std::net::TcpListener;
 use zero2prod::startup::run;
 use zero2prod::configuration::get_configuration;
-use sqlx::PgPool;
+use sqlx::{PgPool, postgres::PgPoolOptions};
 use zero2prod::telemetry::{get_subscriber, init_subscriber};
 use secrecy::ExposeSecret;
 
@@ -13,17 +13,10 @@ async fn main() -> std::io::Result<()> {
     init_subscriber(subscriber);
     // read configuration from a yaml config file
     let configuration = get_configuration().expect("Failed to read configuration.");
-    // connect to postgres database using a connection string generated from the config file.
-    // the reason to use PgPool is: 
-    // each time a connection to database is made,
-    // PgPool will either create a new connection or,
-    // wait for a current connection to close,
-    // thus enables concurrent access through multiple connections to a database.
-    // (sqlx cannot perform concurrent access over one single connection)
-    //
-    // the connection string is protected using Secret<String>, need to be exposed before further use
-    let connection_pool = PgPool::connect_lazy(&configuration.database.connection_string().expose_secret())
-        .expect("Failed to create Postgres connection pool.");
+    
+    let connection_pool = PgPoolOptions::new()
+        .acquire_timeout(std::time::Duration::from_secs(2))
+        .connect_lazy_with(configuration.database.with_db());
     // get the address for the application server to run on
     let address = format!(
         "{}:{}", 
