@@ -10,6 +10,7 @@ actix-web = "4"
 serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 config = "0.13"
+chrono = "0.4.23"
 uuid = { version = "1.2.2", features = ["v4"] }
 tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }
@@ -27,7 +28,8 @@ features = [
     "postgres",
     "uuid",
     "migrate",
-    "offline"
+    "offline",
+    "chrono"
 ]
 
 [dev-dependencies]

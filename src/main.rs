@@ -22,11 +22,12 @@ async fn main() -> std::io::Result<()> {
     // (sqlx cannot perform concurrent access over one single connection)
     //
     // the connection string is protected using Secret<String>, need to be exposed before further use
-    let connection_pool = PgPool::connect(&configuration.database.connection_string().expose_secret())
-        .await
-        .expect("Failed to connect to Postgres.");
+    let connection_pool = PgPool::connect_lazy(&configuration.database.connection_string().expose_secret())
+        .expect("Failed to create Postgres connection pool.");
     // get the address for the application server to run on
-    let address = format!("127.0.0.1:{}", configuration.application_port);
+    let address = format!(
+        "{}:{}", 
+        configuration.application.host, configuration.application.port);
     // listen to the address
     let listener = TcpListener::bind(address)?;
     // run the server on the address with the previous generated database connection
