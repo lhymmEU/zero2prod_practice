@@ -7,6 +7,7 @@ use tracing_actix_web::TracingLogger;
 use crate::email_client::EmailClient;
 use crate::configuration::{Settings, DatabaseSettings};
 use sqlx::postgres::PgPoolOptions;
+use crate::routes::confirm;
 
 pub struct Application {
     port: u16,
@@ -35,7 +36,12 @@ impl Application {
         );
         let listener = TcpListener::bind(&address)?;
         let port = listener.local_addr().unwrap().port();
-        let server = run(listener, connection_pool, email_client)?;
+        let server = run(
+            listener, 
+            connection_pool, 
+            email_client,
+            configuration.application.base_url,
+        )?;
 
         Ok(Self { port, server })
     }
@@ -59,6 +65,8 @@ pub fn get_connection_pool(
         .connect_lazy_with(configuration.with_db())
 }
 
+pub struct ApplicationBaseUrl(pub String);
+
 // start the server and return a Tokio server handler,
 // the reason to use listener as an input is,
 // we want to run the server on a random port,
@@ -68,6 +76,7 @@ pub fn run(
     listener: TcpListener,
     db_pool: PgPool,
     email_client: EmailClient,
+    base_url: String,
 ) -> Result<Server, std::io::Error> {
     // wrap the db connection with actix_web's data extractor.
     // the reason is:
@@ -79,7 +88,7 @@ pub fn run(
     let db_pool = web::Data::new(db_pool);
     
     let email_client = web::Data::new(email_client);
-    
+    let base_url = web::Data::new(ApplicationBaseUrl(base_url));
     // this outer block handles the transport layer logic
     let server = HttpServer::new(move || {
         // this app block handles the application layer logic
@@ -90,8 +99,10 @@ pub fn run(
             .wrap(TracingLogger::default())
             .route("/health_check", web::get().to(health_check))
             .route("/subscriptions", web::post().to(subscribe))
+            .route("/subscriptions/confirm", web::get().to(confirm))
             .app_data(db_pool.clone())
             .app_data(email_client.clone())
+            .app_data(base_url.clone())
     })
     .listen(listener)?
     .run();
