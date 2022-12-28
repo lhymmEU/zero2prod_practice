@@ -1,7 +1,7 @@
 use actix_web::{web, App, HttpServer};
 use actix_web::dev::Server;
 use std::net::TcpListener;
-use crate::routes::{ health_check, subscribe, confirm, publish_newsletter };
+use crate::routes::{ health_check, subscribe, confirm, publish_newsletter, home, login_form, login };
 use sqlx::PgPool;
 use tracing_actix_web::TracingLogger;
 use crate::email_client::EmailClient;
@@ -96,6 +96,9 @@ pub fn run(
             // it provides an easy way to parse actix_web's loggings and
             // integrate them with tracing spans
             .wrap(TracingLogger::default())
+            .route("/", web::get().to(home))
+            .route("/login", web::get().to(login_form))
+            .route("/login", web::post().to(login))
             .route("/health_check", web::get().to(health_check))
             .route("/subscriptions", web::post().to(subscribe))
             .route("/subscriptions/confirm", web::get().to(confirm))
